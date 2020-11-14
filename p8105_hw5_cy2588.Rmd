@@ -1,0 +1,143 @@
+---
+title: "p8105_hw5_cy2588"
+author: "Chufeng Yang"
+date: "2020/11/14"
+output: github_document
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+
+## Problem 1
+
+### Solution 1
+Read in the data.
+
+```{r}
+homicide_df = 
+  read_csv("p1_data/homicide-data.csv") %>% 
+  mutate(
+    city_state = str_c(city, state, sep = "_"),
+    resolved = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest"        ~ "unsolved",
+      disposition == "Closed by arrest"      ~ "solved",
+    )
+  ) %>% 
+  select(city_state, resolved) %>% 
+  filter(city_state != "Tulsa_AL")
+```
+Summarize
+```{r}
+aggregate_df = 
+  homicide_df %>% 
+  group_by(city_state) %>% 
+  summarize(
+    hom_total = n(),
+    hom_unsolved = sum(resolved == "unsolved")
+  )
+```
+
+prop test for a single city
+
+```{r}
+prop.test(
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_unsolved), 
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_total)) %>% 
+  broom::tidy()
+```
+
+Iterate
+
+```{r}
+results_df = 
+  aggregate_df %>% 
+  mutate(
+    prop_tests = map2(.x = hom_unsolved, .y = hom_total, ~prop.test(x = .x, n = .y)),
+    tidy_tests = map(.x = prop_tests, ~broom::tidy(.x))
+  ) %>% 
+  select(-prop_tests) %>% 
+  unnest(tidy_tests) %>% 
+  select(city_state, estimate, conf.low, conf.high)
+```
+
+Create a plot
+```{r}
+results_df %>% 
+  mutate(city_state = fct_reorder(city_state, estimate)) %>% 
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() + 
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+### Solution 2
+
+Clean the data
+```{r, error = TRUE}
+homicide_df_2 = 
+  read_csv("p1_data/homicide-data.csv") %>% 
+  mutate(
+    city_state = str_c(city, state, sep = "_"),
+    resolved = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest"        ~ "unsolved",
+      disposition == "Closed by arrest"      ~ "solved",
+    )
+  ) %>% 
+  select(city_state, resolved) %>% 
+  filter(city_state != "Tulsa_AL") %>% 
+  nest(data = resolved)
+```
+Build a function of prop test
+```{r, error = TRUE}
+city_prop_test = function(df) {
+  
+  n_unsovled = as.numeric(summarize(df,sum(resolved == "unsolved")))
+  n_total = as.numeric(summarize(df,n()))
+  
+  prop.test(n_unsovled, n_total)
+  
+}
+```
+
+map function with data
+
+
+
+```{r, error = TRUE}
+results_df_2 = 
+  homicide_df_2 %>% 
+  mutate(
+    prop_tests_2 = map(homicide_df_2$data, city_prop_test),
+    tidy_tests_2 = map(.x = prop_tests_2, ~broom::tidy(.x))
+) %>%
+  select(-prop_tests_2) %>% 
+  unnest(tidy_tests_2) %>% 
+  select(city_state, estimate, conf.low, conf.high)
+```
+
+Create a plot
+```{r, error = TRUE}
+results_df_2 %>% 
+  mutate(city_state = fct_reorder(city_state, estimate)) %>% 
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() + 
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
