@@ -181,18 +181,25 @@ lda_data_tidy =
     names_prefix = "week_",
     names_to = "week",
     values_to = "observations"
-  )
+  )%>%
+  mutate(week = as.numeric(week))
 lda_data_tidy
 ```
 
 Make a spaghetti plot
 ```{r}
 lda_data_tidy %>%
+  unite("arm_id",c(arm,id), sep = "_", remove = F)%>%
   ggplot(aes(x = week,
-             y = observations)) +
-  geom_path(aes(color = arm,
+             y = observations))+
+  geom_point(aes(color = arm,
                 group = id),
-            alpha = 0.3)
+             alpha = .5,
+             size = .5)+
+  geom_path(aes(colour = arm, 
+                group = arm_id),
+            alpha = .5)+
+  geom_smooth(aes(colour = arm), se = F)
 ```
 
 
