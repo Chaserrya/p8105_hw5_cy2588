@@ -25,7 +25,7 @@ scale_fill_discrete = scale_fill_viridis_d
 ## Problem 1
 
 ### Solution 1
-Read in the data.
+Read in the data.  
 
 ```{r}
 homicide_df = 
@@ -41,7 +41,9 @@ homicide_df =
   select(city_state, resolved) %>% 
   filter(city_state != "Tulsa_AL")
 ```
-Summarize
+
+Summarize  
+
 ```{r}
 aggregate_df = 
   homicide_df %>% 
@@ -52,7 +54,7 @@ aggregate_df =
   )
 ```
 
-prop test for a single city
+prop test for a single city  
 
 ```{r}
 prop.test(
@@ -61,7 +63,7 @@ prop.test(
   broom::tidy()
 ```
 
-Iterate
+Iterate  
 
 ```{r}
 results_df = 
@@ -75,7 +77,7 @@ results_df =
   select(city_state, estimate, conf.low, conf.high)
 ```
 
-Create a plot
+Create a plot  
 ```{r}
 results_df %>% 
   mutate(city_state = fct_reorder(city_state, estimate)) %>% 
@@ -87,7 +89,7 @@ results_df %>%
 
 ### Solution 2
 
-Clean the data
+Clean the data  
 ```{r, error = TRUE}
 homicide_df_2 = 
   read_csv("p1_data/homicide-data.csv") %>% 
@@ -103,7 +105,8 @@ homicide_df_2 =
   filter(city_state != "Tulsa_AL") %>% 
   nest(data = resolved)
 ```
-Build a function of prop test
+Build a function of prop test   
+
 ```{r, error = TRUE}
 city_prop_test = function(df) {
   
@@ -115,9 +118,7 @@ city_prop_test = function(df) {
 }
 ```
 
-map function with data
-
-
+map function with data  
 
 ```{r, error = TRUE}
 results_df_2 = 
@@ -131,7 +132,7 @@ results_df_2 =
   select(city_state, estimate, conf.low, conf.high)
 ```
 
-Create a plot
+Create a plot  
 ```{r, error = TRUE}
 results_df_2 %>% 
   mutate(city_state = fct_reorder(city_state, estimate)) %>% 
@@ -141,9 +142,9 @@ results_df_2 %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
-## Problem 2
-
-Start with a dataframe containing data from all participants
+## Problem 2  
+ 
+Start with a dataframe containing data from all participants  
 ```{r, error = TRUE}
 path_df = 
   tibble(
@@ -151,7 +152,7 @@ path_df =
   )
 ```
 
-Iterate over file names and read in data
+Iterate over file names and read in data  
 ```{r}
 lda_data = 
   path_df %>%
@@ -162,7 +163,7 @@ lda_data =
 lda_data
 ```
 
-Tidy the result
+Tidy the result  
 ```{r}
 lda_data_tidy = 
   lda_data %>%
@@ -186,7 +187,7 @@ lda_data_tidy =
 lda_data_tidy
 ```
 
-Make a spaghetti plot
+Make a spaghetti plot  
 ```{r}
 lda_data_tidy %>%
   unite("arm_id",c(arm,id), sep = "_", remove = F)%>%
@@ -202,9 +203,9 @@ lda_data_tidy %>%
   geom_smooth(aes(colour = arm), se = F)
 ```
 
-From the plot above, we could find that the observations of experimental group keep increasing since week 1, and observations of control group are basically  stable. Then we noted that the observations of both groups are close, and observations of experimental group become higher than control group over time.  
+From the plot above, we could find that the observations of experimental group keep increasing since week 1, and observations of control group are basically  stable. Then we noted that the observations of both groups are close, and observations of experimental group become higher than control group over time.    
 
-## Problem3
+## Problem3  
 
 Set mu = 0
 ```{r}
@@ -229,10 +230,10 @@ for (i in 1:5000) {
   output[[i]] = sim_t(mu = 0)
 }
 
-sim_results = bind_rows(output)
+sim_results_0 = bind_rows(output)
 ```
 
-Repeat for mu = 1,2,3,4,5,6
+Repeat for mu = 1,2,3,4,5,6 and combine with mu = 0  
 ```{r}
 set.seed(1)
 sim = function(n = 30, mu, sigma = 5){
@@ -250,10 +251,10 @@ for (i in 1:6) {
   output_set[[i]] = sim(mu = i)
 }
 
-sim_total = bind_rows(output_set)
+sim_total = bind_rows(output_set,sim_results_0)
 ```
 
-make plot of the power
+make plot of the power  
 ```{r message=F, warning=F}
 sim_total %>% 
   mutate(mu = as.factor(mu)) %>% 
@@ -294,9 +295,10 @@ p3_plot_data = bind_rows(mean_data, rej_mean_data)
 ```
 
 #### Is the sample average of μ^ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?  
-According to the plot, we could find that the  sample average of μ_hat for which the null is rejected approximately equal to the true value of μ when the true value of μ is greater than 3.   
-Because when the effect size of μ increased, the power of ttest increased, so the probability of rejecting the null hypothesis when it is false increased, and the sample average of μ^ will close to the true value. But when the power of test is relatively lower, some tests for which the null is false will fail to reject and cause the sample average of μ^ deviate from the true values.  
-(Here sample average of μ^ is greater than true value because for those tests we fail to reject the null, their sample mean is relatively smaller(closer to 0), so the sample average of μ^ across tests for which the null is rejected will get greater. )
+According to the plot, we could find that the  sample average of μ_hat for which the null is rejected approximately equal to the true value of μ when the true value of μ is greater than 3. And when true value of μ is equal to our null hypothesis, the sample average of μ^ across tests for which the null is rejected also approximately equal to the true value.  
+Because when the effect size of μ increased, the power of ttest increased, so the probability of rejecting the null hypothesis when it is false increased, and the sample average of μ^ across rejected sample will close to the true value. But when the power of test is relatively lower, some tests for which sample mean relatively close to 0 but null is false will fail to reject and cause the sample average of μ^ deviate from the true values.  
+When true value of μ equal to 0, which is same as the null hypothesis, we tend to fail to reject the null, and those sample average of μ_hat for which the null is rejected are average of those extrem value around the true value, would be close to the true value.  
+(Here sample average of μ^ is greater than true value because for those tests we fail to reject the null, their sample mean is relatively smaller(closer to 0), so the sample average of μ^ across tests for which the null is rejected will get greater. )  
 
 
 
